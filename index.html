@@ -164,7 +164,9 @@
     .help { margin-top: auto; padding: 12px; color: var(--muted); font-size: .76rem; line-height: 1.7; }
     kbd { padding: 1px 5px; color: #eaf8ff; font: inherit; font-weight: 800; border: 1px solid rgba(194, 228, 255, .24); border-radius: 4px; background: rgba(143, 193, 225, .13); }
 
-    .mobile-controls { display: none; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .mobile-actions, .mobile-controls { display: none; }
+    .mobile-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .mobile-controls { grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .mobile-controls button { min-height: 45px; font-size: 1.15rem; }
 
     @media (max-width: 620px) {
@@ -172,11 +174,12 @@
       .game-shell { grid-template-columns: minmax(0, 1fr); }
       .board-wrap { width: min(82vw, 300px); min-width: 0; margin: auto; }
       .sidebar { display: grid; grid-template-columns: 1fr 1fr; }
+      .mobile-actions { display: grid; }
       .stat-grid { grid-column: span 2; }
       .buttons { grid-column: span 2; }
       .help { display: none; }
       .next-card { min-height: 154px; }
-      .mobile-controls { display: grid; grid-column: span 2; }
+      .mobile-controls { display: grid; }
     }
   </style>
 </head>
@@ -199,6 +202,18 @@
         </div>
       </div>
 
+      <div class="mobile-actions" aria-label="游戏操作">
+        <button type="button" data-action="restart">开始 / 重开</button>
+        <button type="button" class="secondary" data-action="pause">暂停 / 继续</button>
+      </div>
+
+      <div class="mobile-controls" aria-label="触控操作">
+        <button type="button" data-action="left" aria-label="向左">←</button>
+        <button type="button" data-action="rotate" aria-label="旋转">↻</button>
+        <button type="button" data-action="right" aria-label="向右">→</button>
+        <button type="button" data-action="drop" aria-label="快速落下">⇩</button>
+      </div>
+
       <aside class="sidebar">
         <div class="stat-grid">
           <div class="stat"><div class="stat-label">分数</div><div class="stat-value" id="score">0</div></div>
@@ -215,13 +230,6 @@
         <div class="buttons">
           <button id="startBtn" type="button">开始游戏</button>
           <button id="pauseBtn" class="secondary" type="button">暂停</button>
-        </div>
-
-        <div class="mobile-controls" aria-label="触控操作">
-          <button type="button" data-action="left" aria-label="向左">←</button>
-          <button type="button" data-action="rotate" aria-label="旋转">↻</button>
-          <button type="button" data-action="right" aria-label="向右">→</button>
-          <button type="button" data-action="drop" aria-label="快速落下">⇩</button>
         </div>
 
         <div class="help">
@@ -475,7 +483,7 @@
         nextType = takeType(); gameOver = false; paused = false; running = false; clearingRows = []; clearProgress = 0;
         spawn(); updateUI(); draw();
         ui.start.textContent = '开始游戏'; ui.pause.textContent = '暂停';
-        showMessage('准备开始？', '方向键移动，空格键瞬间落下');
+        showMessage('准备开始？', window.matchMedia('(max-width: 620px)').matches ? '轻点旋转，左右滑动移动，向下滑动落下' : '方向键移动，空格键瞬间落下');
       }
 
       function startGame() {
@@ -539,7 +547,33 @@
         if (action === 'right') move(1);
         if (action === 'rotate') rotate();
         if (action === 'drop') hardDrop();
+        if (action === 'restart') restartGame();
+        if (action === 'pause') togglePause();
       }));
+
+      let touchStart = null;
+      boardCanvas.addEventListener('touchstart', event => {
+        if (!canPlay() || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        touchStart = { x: touch.clientX, y: touch.clientY };
+        event.preventDefault();
+      }, { passive: false });
+      boardCanvas.addEventListener('touchmove', event => {
+        if (touchStart) event.preventDefault();
+      }, { passive: false });
+      boardCanvas.addEventListener('touchend', event => {
+        if (!touchStart || !canPlay()) return;
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - touchStart.x;
+        const dy = touch.clientY - touchStart.y;
+        touchStart = null;
+        event.preventDefault();
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) rotate();
+        else if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 1 : -1);
+        else if (dy > 0) hardDrop();
+        else rotate();
+      }, { passive: false });
+      boardCanvas.addEventListener('touchcancel', () => { touchStart = null; });
 
       resetGame();
       requestAnimationFrame(update);

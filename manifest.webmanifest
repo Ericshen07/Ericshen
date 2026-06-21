@@ -1,0 +1,21 @@
+{
+  "name": "霓虹俄罗斯方块",
+  "short_name": "俄罗斯方块",
+  "description": "一款可离线玩的霓虹风格俄罗斯方块小游戏。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#081127",
+  "theme_color": "#081127",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icons/tetris-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
